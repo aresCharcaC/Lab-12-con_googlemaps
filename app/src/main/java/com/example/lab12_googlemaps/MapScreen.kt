@@ -31,7 +31,7 @@ fun MapScreen() {
             // Añadir marcador en Denver, Colorado
             Marker(
                 state = rememberMarkerState(position = ArequipaLocation),
-                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED),
+                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN),
                 title = "Arequipa, Perú"
             )
         }
