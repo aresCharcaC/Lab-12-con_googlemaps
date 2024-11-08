@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getDrawable
@@ -22,55 +23,112 @@ import com.google.maps.android.compose.rememberMarkerState
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.Marker
 import com.google.android.gms.maps.model.BitmapDescriptor
-
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Dot
+import com.google.android.gms.maps.model.Gap
+import com.google.maps.android.compose.Polygon
+import com.google.maps.android.compose.Polyline
 
 @Composable
 fun MapScreen() {
-    val ArequipaLocation = LatLng(-16.4040102, -71.559611) // Arequipa, Perú
+    val arequipaLocation = LatLng(-16.4040102, -71.559611)
     val cameraPositionState = rememberCameraPositionState {
-        position = com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(ArequipaLocation, 12f)
+        position = com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(arequipaLocation, 13f)
     }
-    val context = LocalContext.current
-
-    LaunchedEffect(Unit) {
-        cameraPositionState.animate(
-            update = CameraUpdateFactory.newLatLngZoom(LatLng(-16.2520984,-71.6836503), 12f), // Mover a Yura
-            durationMs = 3000
-        )
-    }
-
+    val context = LocalContext.current  
     //Convertir el recurso drawable a BitmapDescriptor
     val customMarker = bitmapDescriptorFromVector(
         context = context,
         vectorResId = R.drawable.valor // Asegúrate que este es el nombre correcto de tu imagen
     )
 
+    // Definir los polígonos de los centros comerciales
+    val mallAventuraPolygon = listOf(
+        LatLng(-16.432292, -71.509145),
+        LatLng(-16.432757, -71.509626),
+        LatLng(-16.433013, -71.509310),
+        LatLng(-16.432566, -71.508853)
+    )
 
+    val parqueLambramaniPolygon = listOf(
+        LatLng(-16.422704, -71.530830),
+        LatLng(-16.422920, -71.531340),
+        LatLng(-16.423264, -71.531110),
+        LatLng(-16.423050, -71.530600)
+    )
+
+    // Definir rutas (polylines) entre puntos de interés
+    val rutaTuristica = listOf(
+        LatLng(-16.398866, -71.536961), // Plaza de Armas
+        LatLng(-16.422704, -71.530830), // Parque Lambramani
+        LatLng(-16.432292, -71.509145)  // Mall Aventura
+    )
+
+    // Ruta alternativa
+    val rutaAlternativa = listOf(
+        LatLng(-16.398866, -71.536961), // Plaza de Armas
+        LatLng(-16.405373, -71.532669), // Punto intermedio
+        LatLng(-16.432292, -71.509145)  // Mall Aventura
+    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState
         ) {
-            val locations = listOf(
-                LatLng(-16.433415,-71.5442652), // JLByR
-                LatLng(-16.4205151,-71.4945209), // Paucarpata
-                LatLng(-16.3524187,-71.5675994) // Zamacola
+            // Dibujar polígonos de los centros comerciales
+            Polygon(
+                points = mallAventuraPolygon,
+                strokeColor = Color.Red,
+                fillColor = Color(0x330000FF), // Azul semi-transparente
+                strokeWidth = 5f
             )
 
+            Polygon(
+                points = parqueLambramaniPolygon,
+                strokeColor = Color.Red,
+                fillColor = Color(0x330000FF),
+                strokeWidth = 5f
+            )
 
-            locations.forEach { location ->
-                Marker(
-                    state = rememberMarkerState(position = location),
-                    icon = customMarker,
-                    title = "Ubicación",
-                    snippet = "Punto de interés"
+            // Dibujar las rutas (polylines)
+            Polyline(
+                points = rutaTuristica,
+                color = Color.Green,
+                width = 8f,
+                pattern = listOf(
+                    Dash(30f),
+                    Gap(20f)
                 )
-            }
+            )
+
+            Polyline(
+                points = rutaAlternativa,
+                color = Color.Blue,
+                width = 8f,
+                pattern = listOf(
+                    Dot(),
+                    Gap(10f)
+                )
+            )
+
+            // Añadir marcadores en los puntos de interés
             Marker(
-                state = rememberMarkerState(position = ArequipaLocation),
+                state = rememberMarkerState(position = LatLng(-16.398866, -71.536961)),
                 icon = customMarker,
-                title = "Arequipa, Perú"
+                title = "Plaza de Armas"
+            )
+
+            Marker(
+                state = rememberMarkerState(position = LatLng(-16.432292, -71.509145)),
+                icon = customMarker,
+                title = "Mall Aventura"
+            )
+
+            Marker(
+                state = rememberMarkerState(position = LatLng(-16.422704, -71.530830)),
+                icon = customMarker,
+                title = "Parque Lambramani"
             )
         }
     }
