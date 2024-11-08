@@ -52,6 +52,7 @@ android {
 dependencies {
 
     implementation("com.google.android.gms:play-services-maps:19.0.0")
+    implementation(libs.play.services.location)
     val mapsComposeVersion = "4.3.3"
 
     // Google Maps Compose
@@ -63,7 +64,16 @@ dependencies {
     // Widgets de Google Maps Compose
     implementation("com.google.maps.android:maps-compose-widgets:$mapsComposeVersion")
 
-    // Para los widgets de Google Play Services
+    // Para busquedads y autocompletado
+    implementation("com.google.android.libraries.places:places:3.3.0")
+
+    // Para rutas y navegacion
+    implementation("com.google.maps:google-maps-services:2.2.0")
+    implementation("org.slf4j:slf4j-simple:1.7.25")
+
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.google.code.gson:gson:2.10")
 
 
     implementation(libs.androidx.core.ktx)

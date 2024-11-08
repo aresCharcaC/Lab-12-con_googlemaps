@@ -1,6 +1,7 @@
 package com.example.lab12_googlemaps
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.background
@@ -31,8 +32,10 @@ import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getDrawable
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.maps.android.compose.GoogleMap
@@ -48,19 +51,26 @@ import com.google.android.gms.maps.model.Gap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapType
 import com.google.maps.android.compose.Polygon
-import com.google.maps.android.compose.Polyline
+import android.Manifest
+import android.content.ContextWrapper
+import android.location.Location
+import androidx.activity.ComponentActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen() {
     var mapType by remember { mutableStateOf(MapType.NORMAL) }
     var expanded by remember { mutableStateOf(false) }
-
-    val arequipaLocation = LatLng(-16.4040102, -71.559611)
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(arequipaLocation, 13f)
-    }
     val context = LocalContext.current
+    var userLocation by remember { mutableStateOf<LatLng?>(null) }
+    var hasLocationPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
 
     //Convertir el recurso drawable a BitmapDescriptor
     val customMarker = bitmapDescriptorFromVector(
@@ -68,19 +78,62 @@ fun MapScreen() {
         vectorResId = R.drawable.valor // Asegúrate que este es el nombre correcto de tu imagen
     )
 
+    // Verificar permisos iniciales
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            val activity = context.findActivity()
+            ActivityCompat.requestPermissions(
+                activity,
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ),
+                1
+            )
+        } else {
+            hasLocationPermission = true
+            getUserLocation(context) { location ->
+                userLocation = location
+            }
+        }
+    }
+
+    // Obtener ubicación cuando se tienen los permisos
+    LaunchedEffect(hasLocationPermission) {
+        if (hasLocationPermission) {
+            getUserLocation(context) { location ->
+                userLocation = location
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // Mapa
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            properties = MapProperties(mapType = mapType)
-        ) {
-            Marker(
-                state = rememberMarkerState(position = arequipaLocation),
-                icon = customMarker,
-                title = "Arequipa",
-                snippet = "Ciudad Blanca"
+            cameraPositionState = rememberCameraPositionState {
+                position = CameraPosition.fromLatLngZoom(
+                    userLocation ?: LatLng(-16.4040102, -71.559611),
+                    15f
+                )
+            },
+            properties = MapProperties(
+                mapType = mapType,
+                isMyLocationEnabled = hasLocationPermission
             )
+        ) {
+            // Mostrar marcador en la ubicación del usuario si está disponible
+            userLocation?.let { location ->
+                Marker(
+                    state = rememberMarkerState(position = location),
+                    icon = customMarker,
+                    title = "Mi ubicación",
+                    snippet = "Estás aquí"
+                )
+            }
         }
 
         // Menú desplegable compacto
@@ -149,6 +202,51 @@ fun MapScreen() {
             }
         }
     }
+}
+
+// Función para solicitar permisos de ubicación
+private suspend fun requestLocationPermission(context: Context) {
+    val permission = Manifest.permission.ACCESS_FINE_LOCATION
+    if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+        val activity = context.findActivity()
+        ActivityCompat.requestPermissions(
+            activity,
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ),
+            1
+        )
+    }
+}
+
+// Función para obtener la ubicación actual
+private fun getUserLocation(context: Context, onLocationReceived: (LatLng) -> Unit) {
+    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+
+    try {
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED) {
+
+            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+                location?.let {
+                    onLocationReceived(LatLng(it.latitude, it.longitude))
+                }
+            }
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
+// Extensión útil para encontrar la Activity desde un Context
+fun Context.findActivity(): ComponentActivity {
+    var context = this
+    while (context is ContextWrapper) {
+        if (context is ComponentActivity) return context
+        context = context.baseContext
+    }
+    throw IllegalStateException("No se encontró la Activity")
 }
 
 //Función para convertir el vector/imagen a BitmapDescriptor
