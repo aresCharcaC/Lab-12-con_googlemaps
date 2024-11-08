@@ -6,6 +6,7 @@ import android.graphics.drawable.Drawable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -13,6 +14,7 @@ import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getDrawable
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.rememberCameraPositionState
@@ -29,6 +31,13 @@ fun MapScreen() {
         position = com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(ArequipaLocation, 12f)
     }
     val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        cameraPositionState.animate(
+            update = CameraUpdateFactory.newLatLngZoom(LatLng(-16.2520984,-71.6836503), 12f), // Mover a Yura
+            durationMs = 3000
+        )
+    }
 
     //Convertir el recurso drawable a BitmapDescriptor
     val customMarker = bitmapDescriptorFromVector(
@@ -58,6 +67,11 @@ fun MapScreen() {
                     snippet = "Punto de interés"
                 )
             }
+            Marker(
+                state = rememberMarkerState(position = ArequipaLocation),
+                icon = customMarker,
+                title = "Arequipa, Perú"
+            )
         }
     }
 }
